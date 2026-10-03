@@ -21,6 +21,20 @@ export function updatesSupported() {
   return app.isPackaged && !process.env.PORTABLE_EXECUTABLE_DIR && process.platform !== 'linux';
 }
 
+/** Turn electron-updater's raw HTTP dumps into something a person can read. */
+function friendlyError(err) {
+  const msg = String(err?.message || err);
+  if (/\b404\b/.test(msg) || /No published versions/i.test(msg))
+    return (
+      'No published release was found on GitHub.\n\n' +
+      'Updates come from the GitHub Releases page of blunthex1/msm. That page has to be public ' +
+      '(a private repo hides its releases from the app) and have at least one release published.'
+    );
+  if (/ENOTFOUND|ETIMEDOUT|ECONNREFUSED|ERR_INTERNET_DISCONNECTED|net::/i.test(msg))
+    return 'Could not reach GitHub. Check your internet connection and try again.';
+  return msg.split('\n')[0].slice(0, 300);
+}
+
 function show(opts) {
   return dialog.showMessageBox({ title: 'MSM for YouTube', ...opts });
 }
@@ -68,8 +82,7 @@ export function setupUpdater() {
     offerRestart(info.version);
   });
   autoUpdater.on('error', (err) => {
-    if (manualCheck)
-      show({ type: 'warning', message: "Couldn't check for updates.", detail: String(err?.message || err) });
+    if (manualCheck) show({ type: 'warning', message: "Couldn't check for updates.", detail: friendlyError(err) });
     manualCheck = false;
   });
 
