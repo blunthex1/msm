@@ -271,10 +271,40 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
     hidePlayables();
     hideShorts();
     cinemaLayout();
+    playerWatchdog();
     skipper.update(
       win.location.pathname === '/watch' ? new URLSearchParams(win.location.search).get('v') : null,
       settings.enabled && settings.skipSponsors,
     );
+  }
+
+  // ---- stuck-player watchdog -------------------------------------------------
+  // Sometimes, after clicking into a video, YouTube's player stays black and never loads
+  // until the page is refreshed. If the player hasn't loaded anything after a few seconds,
+  // reload once for that video (never twice, so it can't loop).
+
+  const WATCHDOG_MS = 8000;
+  let watchdog = { vid: null, timer: null };
+  function playerWatchdog() {
+    const vid = win.location.pathname === '/watch' ? new URLSearchParams(win.location.search).get('v') : null;
+    if (vid === watchdog.vid) return;
+    win.clearTimeout(watchdog.timer);
+    watchdog = { vid, timer: null };
+    if (!vid) return;
+    watchdog.timer = win.setTimeout(() => {
+      if (stopped || watchdog.vid !== vid || doc.hidden) return;
+      const video = doc.querySelector('#movie_player video');
+      const loaded = video && (video.currentSrc || video.src) && video.readyState > 0;
+      const errorShown = doc.querySelector('#movie_player .ytp-error');
+      if (loaded || errorShown) return;
+      try {
+        if (win.sessionStorage.getItem('aif-reloaded') === vid) return;
+        win.sessionStorage.setItem('aif-reloaded', vid);
+      } catch {
+        return;
+      }
+      win.location.reload();
+    }, WATCHDOG_MS);
   }
 
   // ---- sponsor skipping ------------------------------------------------------
