@@ -172,7 +172,7 @@ test('channel page: cards inherit the page channel; bar offers unblock', async (
   bar.querySelector('button').click(); // Unblock
   await tick();
   assert.equal(doc.querySelector('ytd-rich-item-renderer').getAttribute('data-aif'), null);
-  assert.match(doc.getElementById('aif-page-bar').textContent, /Block Ai Chemy as AI/);
+  assert.equal(doc.getElementById('aif-page-bar'), null); // nothing to report -> no bar
   filter.stop();
 });
 
