@@ -433,8 +433,8 @@ function buildMenu() {
         {
           label: 'Cinema Layout on Video Pages',
           type: 'checkbox',
-          checked: f.cinemaWatch,
-          click: () => setFilterSettings({ ...config.filter, cinemaWatch: !config.filter.cinemaWatch }),
+          checked: f.cinemaLayout,
+          click: () => setFilterSettings({ ...config.filter, cinemaLayout: !config.filter.cinemaLayout }),
         },
         {
           label: 'Hide AI News && Hype Too',

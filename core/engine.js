@@ -306,13 +306,23 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
   let theater = { vid: null, tries: 0, last: 0 };
   function cinemaLayout() {
     const root = doc.documentElement;
-    const on = settings.cinemaWatch && win.location.pathname === '/watch';
+    const on = settings.cinemaLayout && win.location.pathname === '/watch';
     if (on !== root.hasAttribute(CINEMA_ATTR)) {
       if (on) root.setAttribute(CINEMA_ATTR, '');
       else root.removeAttribute(CINEMA_ATTR);
       win.dispatchEvent(new win.Event('resize')); // let the player re-measure
     }
-    if (!on) return;
+    if (!on) {
+      // Undo the theater-mode cookie earlier versions set, once, so YouTube looks normal again.
+      try {
+        if (/(?:^|;\s*)wide=1(?:;|$)/.test(doc.cookie) && !win.localStorage.getItem('aif-wide-reset')) {
+          doc.cookie = 'wide=0; domain=.youtube.com; path=/; max-age=31536000; secure; samesite=lax';
+          win.localStorage.setItem('aif-wide-reset', '1');
+          doc.querySelector('ytd-watch-flexy[theater] .ytp-size-button')?.click();
+        }
+      } catch {}
+      return;
+    }
     // YouTube opens every video in theater mode while its "wide" cookie is set.
     if (!/(?:^|;\s*)wide=1(?:;|$)/.test(doc.cookie)) {
       doc.cookie = 'wide=1; domain=.youtube.com; path=/; max-age=31536000; secure; samesite=lax';
