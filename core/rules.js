@@ -246,7 +246,7 @@ export function sanitizeSettings(raw) {
     showPageBar: bool(r.showPageBar, d.showPageBar),
     hidePlayables: bool(r.hidePlayables, d.hidePlayables),
     hideShorts: bool(r.hideShorts, d.hideShorts),
-    cinemaWatch: bool(r.cinemaWatch, d.cinemaWatch),
+    cinemaLayout: bool(r.cinemaLayout, d.cinemaLayout),
     skipSponsors: bool(r.skipSponsors, d.skipSponsors),
   };
 }

@@ -161,7 +161,7 @@ export const DEFAULT_SETTINGS = {
   // Hide YouTube Shorts everywhere; Shorts links open in the normal video player instead.
   hideShorts: true,
   // On video pages, size the player to fill the window below YouTube's top bar.
-  cinemaWatch: true,
+  cinemaLayout: false,
   // Auto-skip sponsor / self-promo segments inside videos (community SponsorBlock data).
   skipSponsors: true,
 };
