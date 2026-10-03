@@ -7,6 +7,7 @@ import { readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sanitizeSettings } from '../core/rules.js';
+import { checkForUpdatesManually, setupUpdater } from './updater.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const HOME_URL = 'https://www.youtube.com/';
@@ -408,6 +409,7 @@ function buildMenu() {
     {
       role: 'help',
       submenu: [
+        { label: 'Check for Updates…', click: checkForUpdatesManually },
         { label: 'Project Page', click: () => shell.openExternal(PROJECT_URL) },
         {
           label: 'About',
@@ -457,6 +459,7 @@ if (!app.requestSingleInstanceLock()) {
     setupIpc();
     buildMenu();
     createYouTubeWindow(urlFromArgv(process.argv) || HOME_URL, { restoreState: true });
+    setupUpdater();
 
     app.on('activate', () => {
       if (ytWindows.size === 0) createYouTubeWindow(HOME_URL, { restoreState: true });

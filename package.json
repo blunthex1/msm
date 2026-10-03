@@ -36,6 +36,7 @@
     "files": [
       "package.json",
       "app/main.js",
+      "app/updater.js",
       "app/dist/**",
       "app/build/icon.png",
       "core/**/*.js",
@@ -43,8 +44,19 @@
     ],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64", "arm64"] },
-        { "target": "portable", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "app/build/icon.ico"
     },
@@ -65,8 +77,21 @@
       "category": "public.app-category.video"
     },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "category": "AudioVideo"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "blunthex1",
+        "repo": "msm",
+        "releaseType": "release"
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   }
 }
