@@ -267,3 +267,42 @@ test('Shorts blocker hides Shorts shelves, cards and the sidebar entry when enab
   assert.deepEqual(hidden(), []);
   filter.stop();
 });
+
+test('sponsor skipper jumps over fetched segments and supports undo', async () => {
+  const { createSponsorSkipper } = await import('../core/sponsorblock.js');
+  const dom = new JSDOM('<div id="movie_player"><video></video></div>', {
+    url: 'https://www.youtube.com/watch?v=abcdefghijk',
+  });
+  const win = {
+    document: dom.window.document,
+    crypto: globalThis.crypto,
+    Event: dom.window.Event,
+    fetch: async () => ({
+      ok: true,
+      json: async () => [
+        {
+          videoID: 'abcdefghijk',
+          segments: [{ category: 'sponsor', actionType: 'skip', segment: [10, 40] }],
+        },
+      ],
+    }),
+  };
+  const video = win.document.querySelector('video');
+  let skipped = null;
+  const skipper = createSponsorSkipper({
+    doc: win.document,
+    win,
+    onSkip: (seg, undo) => (skipped = { seg, undo }),
+  });
+  skipper.update('abcdefghijk', true);
+  await tick();
+  video.currentTime = 12;
+  video.dispatchEvent(new win.Event('timeupdate'));
+  assert.equal(video.currentTime, 40);
+  assert.equal(skipped.seg.category, 'sponsor');
+  skipped.undo();
+  assert.equal(video.currentTime, 12);
+  // Doesn't skip the same segment again after undo.
+  video.dispatchEvent(new win.Event('timeupdate'));
+  assert.equal(video.currentTime, 12);
+});

@@ -90,6 +90,7 @@ export function mountOptions(storage, doc = document) {
     'hidePlayables',
     'hideShorts',
     'cinemaWatch',
+    'skipSponsors',
   ];
   for (const id of bools) $(id).addEventListener('change', (e) => save({ [id]: e.target.checked }));
 

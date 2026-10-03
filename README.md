@@ -15,6 +15,7 @@ Two things in one repo, sharing one filter engine:
 - **Channel block list and allow list.** The allow list always wins.
 - **YouTube's "Altered or synthetic content" label.** On a watch page the filter notices the label and offers to block the channel. It can also do this automatically.
 - **Hides YouTube Playables** (on by default): the games shelf on the home feed, single game cards, and the Playables link in the sidebar. Turn it off in settings.
+- **Sponsor skipping** (on by default): jumps over sponsor and self-promotion segments inside videos, using the community [SponsorBlock](https://sponsor.ajay.app) database. A small "Skipped sponsor · Undo" notice appears. Only a 4-character hash prefix of the video ID is sent, so the server can't tell which video you're watching.
 - **Shorts blocker** (on by default): hides Shorts shelves, single Shorts cards and the Shorts sidebar link. Any `/shorts/…` link opens in the normal video player instead. Turn it off in settings, or in the app under **AI Filter → Block Shorts**.
 - **A small "AI Filter" bar** on watch and channel pages for one-click block or unblock.
 - Settings live only on your machine: no account, no analytics, no network requests. The extension only asks for the `storage` permission.

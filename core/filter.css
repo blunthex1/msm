@@ -166,3 +166,34 @@ html[dark] #aif-page-bar button {
 #aif-page-bar > .aif-bar-badge {
   color: var(--aif-accent);
 }
+
+/* "Skipped sponsor" notice inside the player. */
+#aif-toast {
+  position: absolute;
+  left: 16px;
+  bottom: 72px;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px 8px 14px;
+  border-radius: 8px;
+  background: rgba(15, 15, 15, 0.85);
+  color: #fff;
+  font:
+    500 14px/1.2 Roboto,
+    Arial,
+    sans-serif;
+}
+#aif-toast button {
+  font:
+    600 13px/1 Roboto,
+    Arial,
+    sans-serif;
+  padding: 6px 10px;
+  border-radius: 14px;
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  cursor: pointer;
+}
