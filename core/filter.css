@@ -1,0 +1,130 @@
+/* AI Filter — styles injected into YouTube pages. */
+
+[data-aif='hide'] {
+  display: none !important;
+}
+
+[data-aif='blur'] {
+  position: relative !important;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.aif-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  text-align: center;
+  font-family: Roboto, Arial, sans-serif;
+  color: #fff;
+  background: rgba(15, 15, 15, 0.55);
+  -webkit-backdrop-filter: blur(22px) saturate(0.6);
+  backdrop-filter: blur(22px) saturate(0.6);
+  border-radius: 12px;
+  cursor: default;
+}
+
+.aif-overlay-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.aif-overlay-reason {
+  font-size: 12px;
+  opacity: 0.85;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aif-overlay-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.aif-overlay button,
+#aif-page-bar button {
+  font:
+    500 12px/1 Roboto,
+    Arial,
+    sans-serif;
+  padding: 7px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+  cursor: pointer;
+}
+
+.aif-overlay button:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+#aif-page-bar {
+  --aif-fg: var(--yt-spec-text-primary, #0f0f0f);
+  --aif-bg: var(--yt-spec-badge-chip-background, rgba(0, 0, 0, 0.05));
+  --aif-accent: #6b7280;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 12px 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border-left: 4px solid var(--aif-accent);
+  background: var(--aif-bg);
+  color: var(--aif-fg);
+  font:
+    400 13px/1.4 Roboto,
+    Arial,
+    sans-serif;
+}
+
+#aif-page-bar.aif-tone-warn {
+  --aif-accent: #f59e0b;
+}
+#aif-page-bar.aif-tone-blocked {
+  --aif-accent: #ef4444;
+}
+#aif-page-bar.aif-tone-allowed {
+  --aif-accent: #10b981;
+}
+
+.aif-bar-badge {
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--aif-accent);
+}
+
+.aif-bar-message {
+  flex: 1 1 240px;
+}
+
+.aif-bar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+#aif-page-bar button {
+  border-color: var(--yt-spec-10-percent-layer, rgba(0, 0, 0, 0.15));
+  background: transparent;
+}
+
+#aif-page-bar button:hover {
+  background: var(--yt-spec-10-percent-layer, rgba(0, 0, 0, 0.08));
+}
+
+#aif-page-bar button.aif-primary {
+  background: var(--aif-accent);
+  border-color: var(--aif-accent);
+  color: #fff;
+}
