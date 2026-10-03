@@ -130,3 +130,22 @@
   border-color: var(--aif-accent);
   color: #fff;
 }
+
+/* Cinema layout on video pages: no masthead, player fills the window. */
+html[data-aif-cinema] #masthead-container,
+html[data-aif-cinema] ytd-masthead {
+  display: none !important;
+}
+html[data-aif-cinema] ytd-app {
+  --ytd-masthead-height: 0px !important;
+}
+html[data-aif-cinema] ytd-page-manager,
+html[data-aif-cinema] #page-manager.ytd-app {
+  margin-top: 0 !important;
+}
+html[data-aif-cinema] ytd-watch-flexy[theater] #full-bleed-container,
+html[data-aif-cinema] ytd-watch-flexy[full-bleed-player] #full-bleed-container {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  min-height: 0 !important;
+}
