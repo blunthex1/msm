@@ -425,6 +425,12 @@ function buildMenu() {
           click: () => setFilterSettings({ ...config.filter, hideShorts: !config.filter.hideShorts }),
         },
         {
+          label: 'Skip Sponsors in Videos',
+          type: 'checkbox',
+          checked: f.skipSponsors,
+          click: () => setFilterSettings({ ...config.filter, skipSponsors: !config.filter.skipSponsors }),
+        },
+        {
           label: 'Cinema Layout on Video Pages',
           type: 'checkbox',
           checked: f.cinemaWatch,

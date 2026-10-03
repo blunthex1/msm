@@ -30,5 +30,6 @@
       "css": ["filter.css"],
       "run_at": "document_start"
     }
-  ]
+  ],
+  "host_permissions": ["https://sponsor.ajay.app/*"]
 }

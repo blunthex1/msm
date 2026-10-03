@@ -162,6 +162,8 @@ export const DEFAULT_SETTINGS = {
   hideShorts: true,
   // On video pages, hide YouTube's top bar and size the player to fill the window.
   cinemaWatch: true,
+  // Auto-skip sponsor / self-promo segments inside videos (community SponsorBlock data).
+  skipSponsors: true,
 };
 
 export const SETTINGS_KEY = 'aiFilterSettings';

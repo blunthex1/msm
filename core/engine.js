@@ -5,6 +5,7 @@
 //   storage.save(settings)    -> Promise<void>
 //   storage.subscribe(cb)     -> cb(settings) whenever settings change anywhere
 
+import { createSponsorSkipper } from './sponsorblock.js';
 import {
   addChannel,
   channelInList,
@@ -28,6 +29,7 @@ const ATTR = 'data-aif';
 const GAMES_ATTR = 'data-aif-games';
 const SHORTS_ATTR = 'data-aif-shorts';
 const CINEMA_ATTR = 'data-aif-cinema';
+const TOAST_ID = 'aif-toast';
 const OVERLAY_CLASS = 'aif-overlay';
 const BAR_ID = 'aif-page-bar';
 
@@ -269,7 +271,35 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
     hidePlayables();
     hideShorts();
     cinemaLayout();
+    skipper.update(
+      win.location.pathname === '/watch' ? new URLSearchParams(win.location.search).get('v') : null,
+      settings.enabled && settings.skipSponsors,
+    );
   }
+
+  // ---- sponsor skipping ------------------------------------------------------
+
+  let toastTimer = null;
+  function showToast(text, undo) {
+    doc.getElementById(TOAST_ID)?.remove();
+    const host = doc.querySelector('#movie_player') || doc.body;
+    const toast = h(
+      doc,
+      'div',
+      { id: TOAST_ID },
+      h(doc, 'span', {}, text),
+      h(doc, 'button', { type: 'button', onclick: guard(() => (undo(), toast.remove())) }, 'Undo'),
+    );
+    host.append(toast);
+    win.clearTimeout(toastTimer);
+    toastTimer = win.setTimeout(() => toast.remove(), 4000);
+  }
+  const SKIP_LABEL = { sponsor: 'sponsor', selfpromo: 'self-promotion' };
+  const skipper = createSponsorSkipper({
+    doc,
+    win,
+    onSkip: (seg, undo) => showToast(`Skipped ${SKIP_LABEL[seg.category] || seg.category}`, undo),
+  });
 
   // Video pages: hide YouTube's top bar and make the player fill the window.
   // Theater-mode attempts per video; the player ignores clicks until it has finished loading.

@@ -247,5 +247,6 @@ export function sanitizeSettings(raw) {
     hidePlayables: bool(r.hidePlayables, d.hidePlayables),
     hideShorts: bool(r.hideShorts, d.hideShorts),
     cinemaWatch: bool(r.cinemaWatch, d.cinemaWatch),
+    skipSponsors: bool(r.skipSponsors, d.skipSponsors),
   };
 }
