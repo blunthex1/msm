@@ -6,6 +6,11 @@ on:
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+    inputs:
+      release:
+        description: 'Publish a GitHub Release (tag v<package.json version>) from this run'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -53,12 +58,20 @@ jobs:
             release/latest.yml
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.release
     needs: [test, windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: package.json
+      - name: Pick release tag
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then tag="$GITHUB_REF_NAME"
+          else tag="v$(jq -r .version package.json)"; fi
+          echo "TAG=$tag" >> "$GITHUB_ENV"
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
@@ -70,9 +83,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
+          gh release create "$TAG" \
             --repo "$GITHUB_REPOSITORY" \
-            --title "$GITHUB_REF_NAME" \
+            --target "$GITHUB_SHA" \
+            --title "$TAG" \
             --generate-notes \
             artifacts/windows-app/*.exe \
             artifacts/windows-app/*.blockmap \
