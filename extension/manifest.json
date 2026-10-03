@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "MSM AI Filter for YouTube",
+  "short_name": "AI Filter",
+  "version": "0.0.0",
+  "description": "Hide AI-generated videos (AI slop) on YouTube. Keyword packs, channel block/allow lists, and YouTube's synthetic-content label.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": ["storage"],
+  "action": {
+    "default_title": "AI Filter",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*", "https://m.youtube.com/*"],
+      "js": ["content.js"],
+      "css": ["filter.css"],
+      "run_at": "document_start"
+    }
+  ]
+}

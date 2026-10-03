@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'"
+    />
+    <title>AI Filter Settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>AI Filter</h1>
+        <p class="sub">Hide AI-generated videos on YouTube.</p>
+        <span id="saved" class="saved" aria-live="polite"></span>
+      </header>
+
+      <section>
+        <label class="switch-row">
+          <span>
+            <strong>Filter enabled</strong>
+            <small>Turn off to see everything without losing your settings.</small>
+          </span>
+          <input type="checkbox" id="enabled" class="switch" />
+        </label>
+        <div class="row">
+          <span><strong>When a video matches</strong></span>
+          <div class="seg" role="radiogroup" aria-label="Filter mode">
+            <label><input type="radio" name="mode" value="hide" /> Hide it</label>
+            <label><input type="radio" name="mode" value="blur" /> Blur with a label</label>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>What to filter</h2>
+        <div id="packs"></div>
+        <label class="check">
+          <input type="checkbox" id="matchChannelNames" />
+          <span>Also match keywords in channel names</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="matchDescriptions" />
+          <span>Also match keywords in description snippets (search results)</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="detectDisclosure" />
+          <span>Flag videos YouTube labels “Altered or synthetic content”</span>
+        </label>
+        <label class="check indent">
+          <input type="checkbox" id="autoBlockDisclosed" />
+          <span>…and automatically block channels that use that label</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="showPageBar" />
+          <span>Show the AI Filter bar (block/allow channel) on watch and channel pages</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="hidePlayables" />
+          <span>Hide YouTube Playables (games shelf, game cards and sidebar link)</span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="hideShorts" />
+          <span
+            >Block Shorts (hide Shorts shelves, cards and sidebar link; Shorts links open in the normal
+            player)</span
+          >
+        </label>
+      </section>
+
+      <section>
+        <h2>Your keywords</h2>
+        <p class="hint">
+          One per line. Matches whole words, case-insensitive. Use <code>/regex/</code> for patterns.
+        </p>
+        <textarea
+          id="customKeywords"
+          rows="5"
+          spellcheck="false"
+          placeholder="ai baby&#10;/\bai\s+(cat|dog)s?\b/"
+        ></textarea>
+        <p id="keywordErrors" class="error"></p>
+        <details>
+          <summary>Never match these built-in keywords</summary>
+          <textarea id="ignoredKeywords" rows="3" spellcheck="false" placeholder="suno"></textarea>
+        </details>
+      </section>
+
+      <section>
+        <h2>Try it</h2>
+        <input type="text" id="tester" placeholder="Paste a video title…" />
+        <p id="testResult" class="test-result"></p>
+      </section>
+
+      <section>
+        <h2>Blocked channels <span class="count" id="blockedCount"></span></h2>
+        <form id="blockForm" class="add-row">
+          <input type="text" id="blockInput" placeholder="@handle, channel URL or name" />
+          <button type="submit">Block</button>
+        </form>
+        <ul id="blockedChannels" class="chips"></ul>
+      </section>
+
+      <section>
+        <h2>Always allowed channels <span class="count" id="allowedCount"></span></h2>
+        <form id="allowForm" class="add-row">
+          <input type="text" id="allowInput" placeholder="@handle, channel URL or name" />
+          <button type="submit">Allow</button>
+        </form>
+        <ul id="allowedChannels" class="chips"></ul>
+      </section>
+
+      <section>
+        <h2>Backup</h2>
+        <div class="add-row">
+          <button type="button" id="exportBtn">Export settings</button>
+          <button type="button" id="importBtn">Import settings</button>
+          <button type="button" id="resetBtn" class="danger">Reset to defaults</button>
+          <input type="file" id="importFile" accept="application/json,.json" hidden />
+        </div>
+      </section>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>

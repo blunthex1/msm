@@ -1,0 +1,81 @@
+name: Build
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - run: npm test
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extension-chrome-edge
+          path: dist/chrome
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extension-firefox
+          path: dist/firefox
+
+  windows:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run dist:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-app
+          path: |
+            release/*.exe
+            release/*.blockmap
+            release/latest.yml
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Zip extensions
+        run: |
+          (cd artifacts/extension-chrome-edge && zip -r ../../ai-filter-chrome-edge.zip .)
+          (cd artifacts/extension-firefox && zip -r ../../ai-filter-firefox.zip .)
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            artifacts/windows-app/*.exe \
+            artifacts/windows-app/*.blockmap \
+            artifacts/windows-app/latest.yml \
+            ai-filter-chrome-edge.zip \
+            ai-filter-firefox.zip

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>AI Filter</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <img src="icons/icon32.png" alt="" width="20" height="20" />
+      <strong>AI Filter</strong>
+      <input type="checkbox" id="enabled" class="switch" aria-label="Filter enabled" />
+    </header>
+    <p id="status" class="status">Open YouTube to start filtering.</p>
+    <div class="seg" role="radiogroup" aria-label="Filter mode">
+      <label><input type="radio" name="mode" value="hide" /> Hide</label>
+      <label><input type="radio" name="mode" value="blur" /> Blur</label>
+    </div>
+    <div id="channelBox" class="channel" hidden>
+      <span id="channelName"></span>
+      <div class="actions">
+        <button type="button" id="blockBtn" class="primary">Block channel</button>
+        <button type="button" id="allowBtn">Always allow</button>
+      </div>
+    </div>
+    <button type="button" id="optionsBtn" class="link">Settings, keywords &amp; channel lists →</button>
+    <script src="popup.js"></script>
+  </body>
+</html>
