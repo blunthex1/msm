@@ -209,7 +209,9 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
       buttons.push(btn(`Block ${name}`, () => actions.blockChannel(channel), true));
       buttons.push(btn('Always allow', () => actions.allowChannel(channel)));
     } else {
-      buttons.push(btn(`Block ${name} as AI`, () => actions.blockChannel(channel)));
+      // Nothing to report: stay out of the way (block via the menu / popup instead).
+      removeBar();
+      return;
     }
 
     const key = [version, ctx.type, tone, message, name].join('|');

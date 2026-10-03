@@ -149,3 +149,20 @@ html[data-aif-cinema] ytd-watch-flexy[full-bleed-player] #full-bleed-container {
   max-height: 100vh !important;
   min-height: 0 !important;
 }
+
+/* Readable page bar on YouTube's dark theme, and keep YouTube styles from hiding its contents. */
+html[dark] #aif-page-bar {
+  --aif-fg: #f1f1f1;
+  --aif-bg: rgba(255, 255, 255, 0.08);
+}
+html[dark] #aif-page-bar button {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+#aif-page-bar > span {
+  display: inline-flex !important;
+  visibility: visible !important;
+  color: var(--aif-fg);
+}
+#aif-page-bar > .aif-bar-badge {
+  color: var(--aif-accent);
+}
