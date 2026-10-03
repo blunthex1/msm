@@ -1,5 +1,6 @@
 /* AI Filter — styles injected into YouTube pages. */
 
+[data-aif-games],
 [data-aif='hide'] {
   display: none !important;
 }

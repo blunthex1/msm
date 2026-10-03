@@ -156,6 +156,8 @@ export const DEFAULT_SETTINGS = {
   autoBlockDisclosed: false,
   // Show the small AI Filter bar on watch and channel pages.
   showPageBar: true,
+  // Hide YouTube Playables (in-browser games): the home-feed shelf, game cards and the sidebar entry.
+  hidePlayables: true,
 };
 
 export const SETTINGS_KEY = 'aiFilterSettings';

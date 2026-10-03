@@ -13,9 +13,10 @@ import {
   removeChannel,
   sanitizeSettings,
 } from './rules.js';
-import { CARD_SELECTOR, extractCard, getPageContext, hideTarget, isNestedCard } from './youtube.js';
+import { CARD_SELECTOR, extractCard, findPlayables, getPageContext, hideTarget, isNestedCard } from './youtube.js';
 
 const ATTR = 'data-aif';
+const GAMES_ATTR = 'data-aif-games';
 const OVERLAY_CLASS = 'aif-overlay';
 const BAR_ID = 'aif-page-bar';
 
@@ -251,6 +252,13 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
       if (isNestedCard(card)) continue;
       processCard(card, pageChannel);
     }
+    hidePlayables();
+  }
+
+  function hidePlayables() {
+    const want = settings.enabled && settings.hidePlayables ? findPlayables(doc) : new Set();
+    for (const el of doc.querySelectorAll(`[${GAMES_ATTR}]`)) if (!want.has(el)) el.removeAttribute(GAMES_ATTR);
+    for (const el of want) el.setAttribute(GAMES_ATTR, '');
   }
 
   function scheduleScan(delay = debounceMs) {

@@ -14,6 +14,7 @@ Two things in one repo, sharing one filter engine:
 - Matching is whole-word (`ai` won't match "said" or "Thailand") and handles `AI-art`, `#aiart`, plurals and fancy Unicode text like `𝐀𝐈 𝐀𝐫𝐭`. You can add your own keywords or `/regex/` patterns, and switch off any built-in keyword.
 - **Channel block list and allow list.** The allow list always wins.
 - **YouTube's "Altered or synthetic content" label.** On a watch page the filter notices the label and offers to block the channel. It can also do this automatically.
+- **Hides YouTube Playables** (on by default): the games shelf on the home feed, single game cards, and the Playables link in the sidebar. Turn it off in settings.
 - **A small "AI Filter" bar** on watch and channel pages for one-click block or unblock.
 - Settings live only on your machine: no account, no analytics, no network requests. The extension only asks for the `storage` permission.
 

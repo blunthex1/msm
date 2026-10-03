@@ -201,3 +201,50 @@ test('watch page: synthetic-content label is detected and can auto-block', async
   assert.match(auto.doc.getElementById('aif-page-bar').textContent, /on your AI block list/);
   auto.filter.stop();
 });
+
+const gameCard = (id, title) => `
+<ytd-rich-item-renderer><div id="content"><ytd-mini-game-card-view-model>
+  <a href="/playables/${id}"><img></a><h3><a href="/playables/${id}">${title}</a></h3>
+</ytd-mini-game-card-view-model></div></ytd-rich-item-renderer>`;
+
+const playablesShelf = `
+<ytd-rich-section-renderer id="games"><div id="content"><ytd-rich-shelf-renderer>
+  <h2>YouTube Playables</h2>
+  ${gameCard('UgkxAAAA', 'My Mini Mart')}${gameCard('UgkxBBBB', 'Western Farm')}
+</ytd-rich-shelf-renderer></div></ytd-rich-section-renderer>`;
+
+const guideEntry = (href, label) =>
+  `<ytd-guide-entry-renderer><a id="endpoint" href="${href}">${label}</a></ytd-guide-entry-renderer>`;
+
+test('hides the Playables shelf and sidebar entry, keeps normal videos', async () => {
+  const { doc, filter, storage } = await setup(
+    guideEntry('/playables', 'Playables') +
+      guideEntry('/feed/history', 'History') +
+      playablesShelf +
+      lockupCard('ccccccccccc', 'Cooking pasta at home', 'Chef'),
+    { url: 'https://www.youtube.com/' },
+  );
+  const games = () => [...doc.querySelectorAll('[data-aif-games]')].map((e) => e.id || e.textContent.trim());
+  assert.deepEqual(games(), ['Playables', 'games']);
+  assert.equal(marks(doc).length, 0, 'normal video untouched');
+  assert.equal(filter.getStats().hiddenOnPage, 0, 'games do not count as AI videos');
+
+  await storage.save({ ...(await storage.load()), hidePlayables: false });
+  await tick();
+  assert.deepEqual(games(), []);
+  filter.stop();
+});
+
+test('a mixed shelf only loses its game cards', async () => {
+  const { doc, filter } = await setup(
+    `<ytd-rich-section-renderer><ytd-rich-shelf-renderer>
+      ${gameCard('UgkxCCCC', 'Gas Station')}${lockupCard('ddddddddddd', 'Bike repair basics', 'Bikes')}
+    </ytd-rich-shelf-renderer></ytd-rich-section-renderer>`,
+    { url: 'https://www.youtube.com/' },
+  );
+  const hidden = [...doc.querySelectorAll('[data-aif-games]')];
+  assert.equal(hidden.length, 1);
+  assert.equal(hidden[0].tagName.toLowerCase(), 'ytd-rich-item-renderer');
+  assert.match(hidden[0].textContent, /Gas Station/);
+  filter.stop();
+});

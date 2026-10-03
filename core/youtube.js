@@ -160,6 +160,59 @@ export function isNestedCard(card) {
 }
 
 // ---------------------------------------------------------------------------
+// YouTube Playables (in-browser games)
+
+const PLAYABLE_LINK = 'a[href^="/playables"], a[href*="youtube.com/playables"]';
+const PLAYABLE_CARD = 'ytd-mini-game-card-view-model, ytd-mini-game-card-renderer';
+// Containers that hold a whole shelf of games on the home feed / search.
+const PLAYABLE_SHELF =
+  'ytd-rich-section-renderer, ytd-rich-shelf-renderer, ytd-shelf-renderer, ytd-horizontal-card-list-renderer, ytd-reel-shelf-renderer';
+const PLAYABLE_ITEM = `${CARD_SELECTOR}, ${PLAYABLE_CARD}, ytd-guide-entry-renderer, ytd-mini-guide-entry-renderer`;
+
+/** Elements to hide so YouTube Playables disappear: shelves, single game cards, sidebar entries. */
+export function findPlayables(doc) {
+  const out = new Set();
+  const consider = (el) => {
+    // Largest enclosing shelf that holds nothing but games.
+    let shelf = null;
+    for (
+      let s = el.closest(PLAYABLE_SHELF);
+      s && isGameShelf(s);
+      s = s.parentElement?.closest(PLAYABLE_SHELF)
+    )
+      shelf = s;
+    if (shelf) return out.add(shelf);
+    const item = outermost(el, PLAYABLE_ITEM);
+    if (item) out.add(item);
+  };
+  for (const a of doc.querySelectorAll(PLAYABLE_LINK)) consider(a);
+  for (const card of doc.querySelectorAll(PLAYABLE_CARD)) consider(card);
+  return out;
+}
+
+// The outermost ancestor (or self) matching selector, so hiding it leaves no empty wrapper.
+function outermost(el, selector) {
+  let found = el.closest(selector);
+  while (found) {
+    const up = found.parentElement?.closest(selector);
+    if (!up) break;
+    found = up;
+  }
+  return found;
+}
+
+// A shelf counts as a games shelf when every link to content in it points at /playables.
+function isGameShelf(shelf) {
+  const links = shelf.querySelectorAll('a[href*="/watch"], a[href*="/shorts/"], a[href*="/playables"]');
+  let games = 0;
+  for (const a of links) {
+    if (!/\/playables/.test(a.getAttribute('href'))) return false;
+    games++;
+  }
+  return games > 0 || !!shelf.querySelector(PLAYABLE_CARD);
+}
+
+// ---------------------------------------------------------------------------
 // Page context (watch page / channel page)
 
 const DISCLOSURE_TEXT = /altered or synthetic content/i;
