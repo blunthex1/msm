@@ -425,6 +425,12 @@ function buildMenu() {
           click: () => setFilterSettings({ ...config.filter, hideShorts: !config.filter.hideShorts }),
         },
         {
+          label: 'Cinema Layout on Video Pages',
+          type: 'checkbox',
+          checked: f.cinemaWatch,
+          click: () => setFilterSettings({ ...config.filter, cinemaWatch: !config.filter.cinemaWatch }),
+        },
+        {
           label: 'Hide AI News && Hype Too',
           type: 'checkbox',
           checked: f.packs.aiTopics,

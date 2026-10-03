@@ -160,6 +160,8 @@ export const DEFAULT_SETTINGS = {
   hidePlayables: true,
   // Hide YouTube Shorts everywhere; Shorts links open in the normal video player instead.
   hideShorts: true,
+  // On video pages, hide YouTube's top bar and size the player to fill the window.
+  cinemaWatch: true,
 };
 
 export const SETTINGS_KEY = 'aiFilterSettings';

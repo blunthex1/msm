@@ -27,6 +27,7 @@ import {
 const ATTR = 'data-aif';
 const GAMES_ATTR = 'data-aif-games';
 const SHORTS_ATTR = 'data-aif-shorts';
+const CINEMA_ATTR = 'data-aif-cinema';
 const OVERLAY_CLASS = 'aif-overlay';
 const BAR_ID = 'aif-page-bar';
 
@@ -64,6 +65,7 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
   let autoBlocked = new Set();
   let timer = null;
   let observer = null;
+  let stopped = false;
 
   // ---- settings ----------------------------------------------------------
 
@@ -264,6 +266,51 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
     }
     hidePlayables();
     hideShorts();
+    cinemaLayout();
+  }
+
+  // Video pages: hide YouTube's top bar and make the player fill the window.
+  // Theater-mode attempts per video; the player ignores clicks until it has finished loading.
+  let theater = { vid: null, tries: 0, last: 0 };
+  function cinemaLayout() {
+    const root = doc.documentElement;
+    const on = settings.cinemaWatch && win.location.pathname === '/watch';
+    if (on !== root.hasAttribute(CINEMA_ATTR)) {
+      if (on) root.setAttribute(CINEMA_ATTR, '');
+      else root.removeAttribute(CINEMA_ATTR);
+      win.dispatchEvent(new win.Event('resize')); // let the player re-measure
+    }
+    if (!on) return;
+    // YouTube opens every video in theater mode while its "wide" cookie is set.
+    if (!/(?:^|;\s*)wide=1(?:;|$)/.test(doc.cookie)) {
+      doc.cookie = 'wide=1; domain=.youtube.com; path=/; max-age=31536000; secure; samesite=lax';
+    }
+    // Switch to theater (wide) mode so the player spans the full width.
+    const flexy = doc.querySelector('ytd-watch-flexy:not([hidden])');
+    if (!flexy || flexy.hasAttribute('theater')) return;
+    const vid = new URLSearchParams(win.location.search).get('v');
+    if (theater.vid !== vid) theater = { vid, tries: 0, last: 0 };
+    const now = Date.now();
+    const btn = doc.querySelector('.ytp-size-button');
+    if (theater.tries >= 30) return; // give up quietly after ~30s
+    if (!btn || now - theater.last < 1000) {
+      if (!theater.waiting) {
+        theater.waiting = true;
+        win.setTimeout(() => {
+          theater.waiting = false;
+          theater.tries++;
+          if (!stopped) scheduleScan(0);
+        }, 1000);
+      }
+      return;
+    }
+    theater.tries++;
+    theater.last = now;
+    btn.click();
+    win.setTimeout(() => {
+      win.dispatchEvent(new win.Event('resize'));
+      if (!stopped) scheduleScan(0);
+    }, 400);
   }
 
   function markAll(attr, want) {
@@ -313,6 +360,7 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
       start();
     },
     stop() {
+      stopped = true;
       observer?.disconnect();
       if (timer) win.clearTimeout(timer);
     },
