@@ -88,6 +88,7 @@ export function mountOptions(storage, doc = document) {
     'autoBlockDisclosed',
     'showPageBar',
     'hidePlayables',
+    'hideShorts',
   ];
   for (const id of bools) $(id).addEventListener('change', (e) => save({ [id]: e.target.checked }));
 

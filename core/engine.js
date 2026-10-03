@@ -13,10 +13,20 @@ import {
   removeChannel,
   sanitizeSettings,
 } from './rules.js';
-import { CARD_SELECTOR, extractCard, findPlayables, getPageContext, hideTarget, isNestedCard } from './youtube.js';
+import {
+  CARD_SELECTOR,
+  extractCard,
+  findShorts,
+  shortsToWatchUrl,
+  findPlayables,
+  getPageContext,
+  hideTarget,
+  isNestedCard,
+} from './youtube.js';
 
 const ATTR = 'data-aif';
 const GAMES_ATTR = 'data-aif-games';
+const SHORTS_ATTR = 'data-aif-shorts';
 const OVERLAY_CLASS = 'aif-overlay';
 const BAR_ID = 'aif-page-bar';
 
@@ -253,12 +263,26 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
       processCard(card, pageChannel);
     }
     hidePlayables();
+    hideShorts();
+  }
+
+  function markAll(attr, want) {
+    for (const el of doc.querySelectorAll(`[${attr}]`)) if (!want.has(el)) el.removeAttribute(attr);
+    for (const el of want) if (!el.hasAttribute(attr)) el.setAttribute(attr, '');
   }
 
   function hidePlayables() {
-    const want = settings.enabled && settings.hidePlayables ? findPlayables(doc) : new Set();
-    for (const el of doc.querySelectorAll(`[${GAMES_ATTR}]`)) if (!want.has(el)) el.removeAttribute(GAMES_ATTR);
-    for (const el of want) el.setAttribute(GAMES_ATTR, '');
+    markAll(GAMES_ATTR, settings.enabled && settings.hidePlayables ? findPlayables(doc) : new Set());
+  }
+
+  function hideShorts() {
+    const on = settings.enabled && settings.hideShorts;
+    if (on) {
+      // Opening a Short plays it in the normal player instead of the Shorts feed.
+      const watch = shortsToWatchUrl(win.location);
+      if (watch) win.location.replace(watch);
+    }
+    markAll(SHORTS_ATTR, on ? findShorts(doc) : new Set());
   }
 
   function scheduleScan(delay = debounceMs) {

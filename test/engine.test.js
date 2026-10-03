@@ -248,3 +248,22 @@ test('a mixed shelf only loses its game cards', async () => {
   assert.match(hidden[0].textContent, /Gas Station/);
   filter.stop();
 });
+
+test('Shorts blocker hides Shorts shelves, cards and the sidebar entry when enabled', async () => {
+  const body = `
+  <ytd-guide-entry-renderer><a id="endpoint" title="Shorts"></a></ytd-guide-entry-renderer>
+  <ytd-guide-entry-renderer><a id="endpoint" title="Subscriptions" href="/feed/subscriptions"></a></ytd-guide-entry-renderer>
+  <ytd-item-section-renderer>
+    <grid-shelf-view-model><div class="ytGridShelfViewModelGridShelfRow">${shortsCell('sssssssssss', 'My real cat')}${shortsCell('ttttttttttt', 'Skate trick')}</div></grid-shelf-view-model>
+    ${searchCard('vvvvvvvvvvv', 'How to fix a bike chain', '@bikes', 'Bike Shop')}
+  </ytd-item-section-renderer>`;
+  const { doc, filter, storage } = await setup(body, { settings: { hideShorts: true } });
+  const hidden = () => [...doc.querySelectorAll('[data-aif-shorts]')].map((e) => e.tagName.toLowerCase());
+  assert.deepEqual(hidden().sort(), ['grid-shelf-view-model', 'ytd-guide-entry-renderer']);
+  assert.equal(doc.querySelector('ytd-video-renderer').hasAttribute('data-aif-shorts'), false);
+
+  await storage.save({ ...(await storage.load()), hideShorts: false });
+  await tick();
+  assert.deepEqual(hidden(), []);
+  filter.stop();
+});

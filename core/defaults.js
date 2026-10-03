@@ -158,6 +158,8 @@ export const DEFAULT_SETTINGS = {
   showPageBar: true,
   // Hide YouTube Playables (in-browser games): the home-feed shelf, game cards and the sidebar entry.
   hidePlayables: true,
+  // Hide YouTube Shorts everywhere; Shorts links open in the normal video player instead.
+  hideShorts: false,
 };
 
 export const SETTINGS_KEY = 'aiFilterSettings';

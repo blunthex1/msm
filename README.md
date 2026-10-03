@@ -15,6 +15,7 @@ Two things in one repo, sharing one filter engine:
 - **Channel block list and allow list.** The allow list always wins.
 - **YouTube's "Altered or synthetic content" label.** On a watch page the filter notices the label and offers to block the channel. It can also do this automatically.
 - **Hides YouTube Playables** (on by default): the games shelf on the home feed, single game cards, and the Playables link in the sidebar. Turn it off in settings.
+- **Shorts blocker** (off by default): hides Shorts shelves, single Shorts cards and the Shorts sidebar link. Any `/shorts/…` link opens in the normal video player instead. Turn it on in settings, or in the app under **AI Filter → Block Shorts**.
 - **A small "AI Filter" bar** on watch and channel pages for one-click block or unblock.
 - Settings live only on your machine: no account, no analytics, no network requests. The extension only asks for the `storage` permission.
 
@@ -45,6 +46,9 @@ The app isn't code-signed yet, so Windows SmartScreen will warn on first launch:
 - Settings are stored in `%APPDATA%\MSM for YouTube\config.json`.
 
 **Signing in:** Google sometimes blocks sign-in from "embedded" browsers. The app shows Google's sign-in pages a standard Firefox user-agent, the usual workaround. If Google still refuses, please open an issue.
+
+### Shields (ad & tracker blocking)
+The app blocks ads and trackers the way Brave Shields does. It uses [Ghostery's open-source blocking engine](https://github.com/ghostery/adblocker) with the uBlock Origin, EasyList and EasyPrivacy filter lists. Requests to ad and tracking servers are blocked at the network level, and ad elements are hidden on the page. It's on by default. Toggle it with **Shields → Block Ads & Trackers** (`Ctrl+Shift+S`). The filter lists are downloaded on first launch and cached in the app's data folder.
 
 ## Browser extension
 

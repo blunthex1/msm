@@ -160,6 +160,57 @@ export function isNestedCard(card) {
 }
 
 // ---------------------------------------------------------------------------
+// Shorts
+
+const SHORTS_LINK = 'a[href^="/shorts/"], a[href*="youtube.com/shorts/"]';
+const SHORTS_CARD = 'ytm-shorts-lockup-view-model-v2, ytm-shorts-lockup-view-model, ytd-reel-item-renderer';
+const SHORTS_SHELF =
+  'ytd-rich-section-renderer, ytd-rich-shelf-renderer, ytd-shelf-renderer, ytd-reel-shelf-renderer, grid-shelf-view-model';
+const SHORTS_ITEM = `${CARD_SELECTOR}, ${SHORTS_CARD}`;
+
+/** Elements to hide so Shorts disappear: shelves, single Shorts cards, sidebar entries. */
+export function findShorts(doc) {
+  const out = new Set();
+  const consider = (el) => {
+    let shelf = null;
+    for (let s = el.closest(SHORTS_SHELF); s && isShortsShelf(s); s = s.parentElement?.closest(SHORTS_SHELF))
+      shelf = s;
+    if (shelf) return out.add(shelf);
+    const item = outermost(el, SHORTS_ITEM);
+    if (item) out.add(hideTarget(item));
+  };
+  for (const a of doc.querySelectorAll(SHORTS_LINK)) consider(a);
+  for (const card of doc.querySelectorAll(SHORTS_CARD)) consider(card);
+  for (const shelf of doc.querySelectorAll('ytd-reel-shelf-renderer, ytd-rich-shelf-renderer[is-shorts]'))
+    out.add(shelf.closest('ytd-rich-section-renderer') || shelf);
+  // Sidebar "Shorts" entry (full and mini guide).
+  for (const a of doc.querySelectorAll(
+    'ytd-guide-entry-renderer a[title="Shorts"], ytd-mini-guide-entry-renderer a[title="Shorts"], ytd-mini-guide-entry-renderer[aria-label="Shorts"]',
+  )) {
+    out.add(a.closest('ytd-guide-entry-renderer, ytd-mini-guide-entry-renderer'));
+  }
+  out.delete(null);
+  return out;
+}
+
+// A shelf counts as a Shorts shelf when every link to content in it points at /shorts/.
+function isShortsShelf(shelf) {
+  const links = shelf.querySelectorAll('a[href*="/watch"], a[href*="/shorts/"], a[href*="/playables"]');
+  let shorts = 0;
+  for (const a of links) {
+    if (!/\/shorts\//.test(a.getAttribute('href'))) return false;
+    shorts++;
+  }
+  return shorts > 0;
+}
+
+/** /shorts/<id> -> /watch?v=<id>, or null if not a Shorts URL. */
+export function shortsToWatchUrl(loc) {
+  const m = /^\/shorts\/([\w-]{6,})/.exec(loc.pathname);
+  return m ? `${loc.origin}/watch?v=${m[1]}` : null;
+}
+
+// ---------------------------------------------------------------------------
 // YouTube Playables (in-browser games)
 
 const PLAYABLE_LINK = 'a[href^="/playables"], a[href*="youtube.com/playables"]';

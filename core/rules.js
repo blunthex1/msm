@@ -245,5 +245,6 @@ export function sanitizeSettings(raw) {
     autoBlockDisclosed: bool(r.autoBlockDisclosed, d.autoBlockDisclosed),
     showPageBar: bool(r.showPageBar, d.showPageBar),
     hidePlayables: bool(r.hidePlayables, d.hidePlayables),
+    hideShorts: bool(r.hideShorts, d.hideShorts),
   };
 }

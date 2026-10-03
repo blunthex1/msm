@@ -1,7 +1,8 @@
 // MSM for YouTube — desktop app main process.
 // Wraps youtube.com in a dedicated window and runs the AI filter inside it.
 
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, session, shell } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, net, session, shell } from 'electron';
+import { ElectronBlocker } from '@ghostery/adblocker-electron';
 import { existsSync } from 'node:fs';
 import { readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -25,7 +26,7 @@ const SIGN_IN_UA = isMac
 // Persistent config (filter settings + window state)
 
 const configPath = () => path.join(app.getPath('userData'), 'config.json');
-let config = { filter: sanitizeSettings({}), window: {}, alwaysOnTop: false };
+let config = { filter: sanitizeSettings({}), window: {}, alwaysOnTop: false, shields: true };
 
 async function loadConfig() {
   try {
@@ -34,6 +35,7 @@ async function loadConfig() {
       filter: sanitizeSettings(raw.filter),
       window: raw.window && typeof raw.window === 'object' ? raw.window : {},
       alwaysOnTop: raw.alwaysOnTop === true,
+      shields: raw.shields !== false,
     };
   } catch {
     // first run or unreadable file: keep defaults
@@ -118,9 +120,45 @@ function setupSession() {
     cb({ requestHeaders: headers });
   });
 
+  setupShields(ses);
+
   const allowed = new Set(['fullscreen', 'clipboard-sanitized-write', 'pointerLock']);
   ses.setPermissionRequestHandler((_wc, permission, cb) => cb(allowed.has(permission)));
   ses.setPermissionCheckHandler((_wc, permission) => allowed.has(permission));
+}
+
+// ---------------------------------------------------------------------------
+// Shields: ad & tracker blocking with Ghostery's engine, using uBlock Origin /
+// EasyList / EasyPrivacy-style filter lists (the same lists Brave Shields uses).
+
+let blocker = null;
+let blockerSession = null;
+
+async function setupShields(ses) {
+  blockerSession = ses;
+  const cachePath = path.join(app.getPath('userData'), 'adblock-engine.bin');
+  try {
+    blocker = await ElectronBlocker.fromPrebuiltAdsAndTracking((url, init) => net.fetch(url, init), {
+      path: cachePath,
+      read: (p) => readFile(p),
+      write: (p, data) => writeFile(p, data),
+    });
+    if (config.shields) blocker.enableBlockingInSession(ses);
+    buildMenu();
+  } catch (err) {
+    console.error('Shields: failed to load filter lists', err);
+  }
+}
+
+function setShields(on) {
+  config.shields = on;
+  saveConfig();
+  if (blocker && blockerSession) {
+    if (on) blocker.enableBlockingInSession(blockerSession);
+    else blocker.disableBlockingInSession(blockerSession);
+  }
+  for (const w of ytWindows) w.webContents.reload();
+  buildMenu();
 }
 
 // ---------------------------------------------------------------------------
@@ -336,6 +374,22 @@ function buildMenu() {
       ],
     },
     {
+      label: '&Shields',
+      submenu: [
+        {
+          label: 'Block Ads && Trackers',
+          type: 'checkbox',
+          checked: config.shields,
+          accelerator: 'CmdOrCtrl+Shift+S',
+          click: (item) => setShields(item.checked),
+        },
+        {
+          label: blocker ? 'Filter lists loaded' : 'Filter lists loading…',
+          enabled: false,
+        },
+      ],
+    },
+    {
       label: 'AI &Filter',
       submenu: [
         {
@@ -363,6 +417,12 @@ function buildMenu() {
           label: 'Block This Channel',
           accelerator: 'CmdOrCtrl+Shift+B',
           click: withWc((wc) => wc.send('aif:block-page-channel')),
+        },
+        {
+          label: 'Block Shorts',
+          type: 'checkbox',
+          checked: f.hideShorts,
+          click: () => setFilterSettings({ ...config.filter, hideShorts: !config.filter.hideShorts }),
         },
         {
           label: 'Hide AI News && Hype Too',
