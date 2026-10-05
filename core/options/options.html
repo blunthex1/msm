@@ -70,9 +70,17 @@
           >
         </label>
         <label class="check">
-          <input type="checkbox" id="cinemaLayout" />
-          <span>Cinema layout on video pages (video fills the window below the top bar)</span>
+          <input type="checkbox" id="skipAds" />
+          <span>Skip YouTube video ads automatically (mutes and fast-forwards them, clicks Skip)</span>
         </label>
+        <div class="row">
+          <span><strong>Video player size</strong></span>
+          <div class="seg" role="radiogroup" aria-label="Video player size">
+            <label><input type="radio" name="playerSize" value="default" /> Normal</label>
+            <label><input type="radio" name="playerSize" value="theater" /> Theater</label>
+            <label><input type="radio" name="playerSize" value="fit" /> Fit window</label>
+          </div>
+        </div>
         <label class="check">
           <input type="checkbox" id="skipSponsors" />
           <span

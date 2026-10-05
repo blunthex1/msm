@@ -246,7 +246,8 @@ export function sanitizeSettings(raw) {
     showPageBar: bool(r.showPageBar, d.showPageBar),
     hidePlayables: bool(r.hidePlayables, d.hidePlayables),
     hideShorts: bool(r.hideShorts, d.hideShorts),
-    cinemaLayout: bool(r.cinemaLayout, d.cinemaLayout),
+    playerSize: ['default', 'theater', 'fit'].includes(r.playerSize) ? r.playerSize : d.playerSize,
+    skipAds: bool(r.skipAds, d.skipAds),
     skipSponsors: bool(r.skipSponsors, d.skipSponsors),
   };
 }

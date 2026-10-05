@@ -5,6 +5,7 @@
 //   storage.save(settings)    -> Promise<void>
 //   storage.subscribe(cb)     -> cb(settings) whenever settings change anywhere
 
+import { createAdSkipper } from './adskip.js';
 import { createSponsorSkipper } from './sponsorblock.js';
 import {
   addChannel,
@@ -260,7 +261,7 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
 
   function scan() {
     timer = null;
-    if (!settings || !doc.documentElement) return;
+    if (stopped || !settings || !doc.documentElement) return;
     blockedOnPage = new Set();
     const ctx = handlePage();
     const pageChannel = ctx.type === 'channel' ? ctx.channel : null;
@@ -270,7 +271,8 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
     }
     hidePlayables();
     hideShorts();
-    cinemaLayout();
+    playerLayout();
+    adSkipper.update(win.location.pathname === '/watch' && settings.skipAds);
     playerWatchdog();
     skipper.update(
       win.location.pathname === '/watch' ? new URLSearchParams(win.location.search).get('v') : null,
@@ -311,6 +313,8 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
     }, WATCHDOG_MS);
   }
 
+  const adSkipper = createAdSkipper({ doc, win });
+
   // ---- sponsor skipping ------------------------------------------------------
 
   let toastTimer = null;
@@ -335,60 +339,54 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
     onSkip: (seg, undo) => showToast(`Skipped ${SKIP_LABEL[seg.category] || seg.category}`, undo),
   });
 
-  // Video pages: hide YouTube's top bar and make the player fill the window.
-  // Theater-mode attempts per video; the player ignores clicks until it has finished loading.
-  let theater = { vid: null, tries: 0, last: 0 };
-  function cinemaLayout() {
+  // Player size on video pages: 'default' (YouTube's normal layout), 'theater' (wide), or
+  // 'fit' (wide + sized to fill the window). Applied once per video, so pressing T still
+  // works for the rest of that video.
+  let sizing = { vid: null, done: false, tries: 0, last: 0, waiting: false };
+  function setWideCookie(on) {
+    const has = /(?:^|;\s*)wide=1(?:;|$)/.test(doc.cookie);
+    if (has !== on)
+      doc.cookie = `wide=${on ? 1 : 0}; domain=.youtube.com; path=/; max-age=31536000; secure; samesite=lax`;
+  }
+  function playerLayout() {
     const root = doc.documentElement;
-    const on = settings.cinemaLayout && win.location.pathname === '/watch';
-    if (on !== root.hasAttribute(CINEMA_ATTR)) {
-      if (on) root.setAttribute(CINEMA_ATTR, '');
+    const onWatch = win.location.pathname === '/watch';
+    const size = settings.playerSize;
+    const fit = onWatch && size === 'fit';
+    if (fit !== root.hasAttribute(CINEMA_ATTR)) {
+      if (fit) root.setAttribute(CINEMA_ATTR, '');
       else root.removeAttribute(CINEMA_ATTR);
       win.dispatchEvent(new win.Event('resize')); // let the player re-measure
     }
-    if (!on) {
-      // Undo the theater-mode cookie earlier versions set, once, so YouTube looks normal again.
-      try {
-        if (!win.localStorage.getItem('aif-wide-reset')) {
-          if (/(?:^|;\s*)wide=1(?:;|$)/.test(doc.cookie)) {
-            doc.cookie = 'wide=0; domain=.youtube.com; path=/; max-age=31536000; secure; samesite=lax';
-          }
-          // This page may already be in theater mode; switch it back once the player exists.
-          const theaterBtn = doc.querySelector('ytd-watch-flexy[theater] .ytp-size-button');
-          if (theaterBtn) theaterBtn.click();
-          // Done once we're on a watch page that isn't in theater mode (or we just switched it off).
-          if (theaterBtn || doc.querySelector('ytd-watch-flexy:not([hidden]):not([theater]) #movie_player')) {
-            win.localStorage.setItem('aif-wide-reset', '1');
-          }
-        }
-      } catch {}
+    const wantTheater = size !== 'default';
+    // YouTube reads its "wide" cookie on page load; keep it matching so the first frame is right.
+    setWideCookie(wantTheater);
+    if (!onWatch) return;
+
+    const vid = new URLSearchParams(win.location.search).get('v');
+    if (sizing.vid !== vid) sizing = { vid, done: false, tries: 0, last: 0, waiting: false };
+    if (sizing.done || sizing.tries >= 30) return;
+    const flexy = doc.querySelector('ytd-watch-flexy:not([hidden])');
+    const btn = doc.querySelector('#movie_player .ytp-size-button');
+    if (flexy && btn && flexy.hasAttribute('theater') === wantTheater) {
+      sizing.done = true;
       return;
     }
-    // YouTube opens every video in theater mode while its "wide" cookie is set.
-    if (!/(?:^|;\s*)wide=1(?:;|$)/.test(doc.cookie)) {
-      doc.cookie = 'wide=1; domain=.youtube.com; path=/; max-age=31536000; secure; samesite=lax';
-    }
-    // Switch to theater (wide) mode so the player spans the full width.
-    const flexy = doc.querySelector('ytd-watch-flexy:not([hidden])');
-    if (!flexy || flexy.hasAttribute('theater')) return;
-    const vid = new URLSearchParams(win.location.search).get('v');
-    if (theater.vid !== vid) theater = { vid, tries: 0, last: 0 };
     const now = Date.now();
-    const btn = doc.querySelector('.ytp-size-button');
-    if (theater.tries >= 30) return; // give up quietly after ~30s
-    if (!btn || now - theater.last < 1000) {
-      if (!theater.waiting) {
-        theater.waiting = true;
+    if (!flexy || !btn || now - sizing.last < 1000) {
+      // The player ignores clicks until it has finished loading; try again shortly.
+      if (!sizing.waiting) {
+        sizing.waiting = true;
         win.setTimeout(() => {
-          theater.waiting = false;
-          theater.tries++;
+          sizing.waiting = false;
+          sizing.tries++;
           if (!stopped) scheduleScan(0);
         }, 1000);
       }
       return;
     }
-    theater.tries++;
-    theater.last = now;
+    sizing.tries++;
+    sizing.last = now;
     btn.click();
     win.setTimeout(() => {
       win.dispatchEvent(new win.Event('resize'));
@@ -444,6 +442,8 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
     },
     stop() {
       stopped = true;
+      adSkipper.update(false);
+      win.clearTimeout(watchdog.timer);
       observer?.disconnect();
       if (timer) win.clearTimeout(timer);
     },
