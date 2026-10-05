@@ -284,9 +284,9 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
   // Sometimes, after clicking into a video, YouTube's player stays black and never loads
   // until the page is refreshed. If the player hasn't loaded anything after a few seconds,
   // reload once for that video (never twice, so it can't loop).
-  // Only triggers when the player never got any media after 12s.
+  // Only triggers when nothing is playing after 7s.
 
-  const WATCHDOG_MS = 12000;
+  const WATCHDOG_MS = 7000;
   let watchdog = { vid: null, timer: null };
   function playerWatchdog() {
     const vid = win.location.pathname === '/watch' ? new URLSearchParams(win.location.search).get('v') : null;
@@ -296,13 +296,16 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
     if (!vid) return;
     watchdog.timer = win.setTimeout(() => {
       if (stopped || watchdog.vid !== vid || doc.hidden) return;
-      // Only act on the real symptom: a player with no media attached at all. A slow but
-      // loading video (src set, still buffering) is left alone.
+      // The symptom: the player is black and nothing is playing (no media at all, or an ad
+      // that never loaded, so there is no picture and the clock never moves). A video
+      // that is playing, or showing a YouTube error, is left alone.
       const player = doc.querySelector('#movie_player');
       const video = player?.querySelector('video');
-      const hasMedia = video && (video.currentSrc || video.src);
       const errorShown = player?.querySelector('.ytp-error');
-      if (!player || hasMedia || errorShown) return;
+      if (!player || errorShown) return;
+      const hasMedia = video && (video.currentSrc || video.src);
+      const noPicture = video && video.readyState < 2 && video.currentTime === 0;
+      if (hasMedia && !noPicture) return;
       try {
         if (win.sessionStorage.getItem('aif-reloaded') === vid) return;
         win.sessionStorage.setItem('aif-reloaded', vid);

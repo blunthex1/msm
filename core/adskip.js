@@ -29,6 +29,17 @@ export function createAdSkipper({ doc, win, intervalMs = 250, trustedClick = nul
   let lastClick = 0;
   let stuckFiredFor = null;
 
+  // Survives the reload this triggers, so a stubborn ad can never cause a reload loop.
+  function alreadyReloaded(vid) {
+    try {
+      if (win.sessionStorage.getItem('msm-ad-reloaded') === vid) return true;
+      win.sessionStorage.setItem('msm-ad-reloaded', vid);
+      return false;
+    } catch {
+      return true;
+    }
+  }
+
   function videoId() {
     return new URLSearchParams(win.location.search).get('v');
   }
@@ -94,6 +105,7 @@ export function createAdSkipper({ doc, win, intervalMs = 250, trustedClick = nul
       const vid = videoId();
       if (vid && stuckFiredFor !== vid) {
         stuckFiredFor = vid;
+        if (alreadyReloaded(vid)) return;
         adSince = now;
         onStuck(vid);
       }
