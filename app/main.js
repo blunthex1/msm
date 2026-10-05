@@ -424,6 +424,28 @@ function setupIpc() {
     if (!isTrustedSender(e.senderFrame)) throw new Error('untrusted sender');
     await setFilterSettings(next);
   });
+
+  // Ad skipper fallback (core/adskip.js): a real mouse click on YouTube's Skip button.
+  ipcMain.on('aif:trusted-click', (e, pos) => {
+    if (!isTrustedSender(e.senderFrame) || e.senderFrame !== e.sender.mainFrame) return;
+    const x = Number(pos?.x);
+    const y = Number(pos?.y);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0) return;
+    const [w, h] = BrowserWindow.fromWebContents(e.sender)?.getContentSize() ?? [0, 0];
+    if (x > w || y > h) return;
+    for (const type of ['mouseMove', 'mouseDown', 'mouseUp']) {
+      e.sender.sendInputEvent({ type, x, y, button: 'left', clickCount: 1 });
+    }
+  });
+
+  // Last resort: an ad that is still on screen after several seconds gets the video
+  // reloaded (the skipper asks at most once per video).
+  ipcMain.on('aif:ad-stuck', (e, videoId) => {
+    if (!isTrustedSender(e.senderFrame) || e.senderFrame !== e.sender.mainFrame) return;
+    if (typeof videoId !== 'string' || !/^[\w-]{6,20}$/.test(videoId)) return;
+    const u = new URL(e.sender.getURL());
+    if (u.pathname === '/watch' && u.searchParams.get('v') === videoId) e.sender.reload();
+  });
 }
 
 // ---------------------------------------------------------------------------

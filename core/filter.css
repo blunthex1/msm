@@ -186,3 +186,22 @@ html[dark] #aif-page-bar button {
   color: #fff;
   cursor: pointer;
 }
+
+/* Ad skipper: cover the ad while it is being skipped. pointer-events: none keeps the
+   Skip button underneath clickable. */
+#movie_player[data-msm-ad]::after {
+  content: 'Skipping ad…';
+  position: absolute;
+  inset: 0;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  color: rgba(255, 255, 255, 0.6);
+  font:
+    500 14px Roboto,
+    Arial,
+    sans-serif;
+  pointer-events: none;
+}
