@@ -13,7 +13,16 @@ const storage = {
 
 webFrame.insertCSS(css);
 
-const filter = createFilter({ storage });
+// YouTube ignores script clicks on its Skip button, so the main process sends a real one.
+const adHooks = {
+  trustedClick: (x, y) => {
+    const z = webFrame.getZoomFactor();
+    ipcRenderer.send('aif:trusted-click', { x: Math.round(x * z), y: Math.round(y * z) });
+  },
+  onStuck: (videoId) => ipcRenderer.send('aif:ad-stuck', videoId),
+};
+
+const filter = createFilter({ storage, adHooks });
 filter.init();
 
 ipcRenderer.on('aif:block-page-channel', () => {

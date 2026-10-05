@@ -57,7 +57,7 @@ function guard(fn) {
   };
 }
 
-export function createFilter({ storage, doc = document, win = window, debounceMs = 120 }) {
+export function createFilter({ storage, doc = document, win = window, debounceMs = 120, adHooks = {} }) {
   let settings = null;
   let compiled = null;
   let version = 0;
@@ -313,7 +313,7 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
     }, WATCHDOG_MS);
   }
 
-  const adSkipper = createAdSkipper({ doc, win });
+  const adSkipper = createAdSkipper({ doc, win, ...adHooks });
 
   // ---- sponsor skipping ------------------------------------------------------
 

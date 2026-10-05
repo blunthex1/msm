@@ -326,3 +326,41 @@ test('ad skipper mutes, jumps to the end of ads, clicks Skip, then unmutes', asy
   skipper.tick();
   assert.equal(video.muted, false);
 });
+
+test('ad skipper sends a trusted click, covers the ad, and asks for a reload when stuck', async () => {
+  const { createAdSkipper, AD_HIDE_ATTR } = await import('../core/adskip.js');
+  const dom = new JSDOM(
+    '<div id="movie_player" class="ad-showing"><video></video><button class="ytp-skip-ad-button">Skip</button></div>',
+    { url: 'https://www.youtube.com/watch?v=abcdefghijk' },
+  );
+  const doc = dom.window.document;
+  const player = doc.querySelector('#movie_player');
+  doc.querySelector('button').getBoundingClientRect = () => ({ left: 100, top: 50, width: 40, height: 20 });
+  const clicks = [];
+  const stuck = [];
+  const realNow = Date.now;
+  let now = 1_000_000;
+  Date.now = () => now;
+  try {
+    const skipper = createAdSkipper({
+      doc,
+      win: dom.window,
+      trustedClick: (x, y) => clicks.push([x, y]),
+      onStuck: (v) => stuck.push(v),
+    });
+    skipper.tick();
+    assert.deepEqual(clicks, [[120, 60]]);
+    assert.ok(player.hasAttribute(AD_HIDE_ATTR));
+    assert.equal(doc.querySelector('video').playbackRate, 16); // unknown duration -> fast-forward
+    now += 5000;
+    skipper.tick();
+    skipper.tick();
+    assert.deepEqual(stuck, ['abcdefghijk']); // only once per video
+    player.classList.remove('ad-showing');
+    skipper.tick();
+    assert.ok(!player.hasAttribute(AD_HIDE_ATTR));
+    assert.equal(doc.querySelector('video').playbackRate, 1);
+  } finally {
+    Date.now = realNow;
+  }
+});
