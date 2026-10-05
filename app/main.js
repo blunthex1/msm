@@ -4,7 +4,7 @@
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, net, session, shell } from 'electron';
 import { ElectronBlocker } from '@ghostery/adblocker-electron';
 import { existsSync } from 'node:fs';
-import { readFile, rename, writeFile } from 'node:fs/promises';
+import { readFile, rename, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sanitizeSettings } from '../core/rules.js';
@@ -153,20 +153,67 @@ function setupSession() {
 let blocker = null;
 let blockerSession = null;
 
-async function setupShields(ses) {
-  blockerSession = ses;
+// uBlock Origin's lists (filters, quick fixes, unbreak, privacy, badware + its scriptlet
+// resources) and EasyList/EasyPrivacy. YouTube changes its ads often and uBO's "quick fixes"
+// list follows within hours, so the lists are refreshed every 12 hours (and on demand).
+const LISTS_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+let listsUpdatedAt = 0;
+let listsUpdating = false;
+
+async function loadBlocker({ force = false } = {}) {
   const cachePath = path.join(app.getPath('userData'), 'adblock-engine.bin');
+  const fetchFn = (url, init) => net.fetch(url, init);
+  const cache = (allowStale) => ({
+    path: cachePath,
+    read: async (p) => {
+      const { mtimeMs } = await stat(p);
+      if (!allowStale && (force || Date.now() - mtimeMs > LISTS_MAX_AGE_MS)) throw new Error('stale');
+      listsUpdatedAt = mtimeMs;
+      return readFile(p);
+    },
+    write: async (p, data) => {
+      await writeFile(p, data);
+      listsUpdatedAt = Date.now();
+    },
+  });
   try {
-    blocker = await ElectronBlocker.fromPrebuiltAdsAndTracking((url, init) => net.fetch(url, init), {
-      path: cachePath,
-      read: (p) => readFile(p),
-      write: (p, data) => writeFile(p, data),
-    });
-    if (config.shields) blocker.enableBlockingInSession(ses);
-    buildMenu();
+    return await ElectronBlocker.fromPrebuiltAdsAndTracking(fetchFn, cache(false));
+  } catch (err) {
+    // Offline or a list server is down: fall back to the last lists we had.
+    console.error('Shields: could not fetch fresh filter lists', err);
+    return ElectronBlocker.fromPrebuiltAdsAndTracking(fetchFn, cache(true));
+  }
+}
+
+async function updateFilterLists({ force = false } = {}) {
+  if (listsUpdating) return;
+  listsUpdating = true;
+  buildMenu();
+  try {
+    const next = await loadBlocker({ force });
+    if (blocker && blockerSession && config.shields) blocker.disableBlockingInSession(blockerSession);
+    blocker = next;
+    if (config.shields && blockerSession) blocker.enableBlockingInSession(blockerSession);
   } catch (err) {
     console.error('Shields: failed to load filter lists', err);
+  } finally {
+    listsUpdating = false;
+    buildMenu();
   }
+}
+
+async function setupShields(ses) {
+  blockerSession = ses;
+  await updateFilterLists();
+  setInterval(() => updateFilterLists(), LISTS_MAX_AGE_MS);
+}
+
+function listsStatusLabel() {
+  if (listsUpdating) return 'Updating filter lists…';
+  if (!blocker) return 'Filter lists not loaded';
+  const mins = Math.round((Date.now() - listsUpdatedAt) / 60000);
+  const ago = mins < 2 ? 'just now' : mins < 120 ? `${mins} min ago` : `${Math.round(mins / 60)} h ago`;
+  return `uBlock Origin + EasyList lists, updated ${ago}`;
 }
 
 function setShields(on) {
@@ -463,9 +510,11 @@ function buildMenu() {
           click: () => setFilterSettings({ ...config.filter, skipSponsors: !config.filter.skipSponsors }),
         },
         { type: 'separator' },
+        { label: listsStatusLabel(), enabled: false },
         {
-          label: blocker ? 'Filter lists loaded' : 'Filter lists loading…',
-          enabled: false,
+          label: 'Update Filter Lists Now',
+          enabled: !listsUpdating,
+          click: () => updateFilterLists({ force: true }),
         },
       ],
     },
