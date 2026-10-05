@@ -306,3 +306,23 @@ test('sponsor skipper jumps over fetched segments and supports undo', async () =
   video.dispatchEvent(new win.Event('timeupdate'));
   assert.equal(video.currentTime, 12);
 });
+
+test('ad skipper mutes, jumps to the end of ads, clicks Skip, then unmutes', async () => {
+  const { createAdSkipper } = await import('../core/adskip.js');
+  const dom = new JSDOM(
+    '<div id="movie_player" class="ad-showing"><video></video><button class="ytp-skip-ad-button">Skip</button></div>',
+  );
+  const doc = dom.window.document;
+  const video = doc.querySelector('video');
+  Object.defineProperty(video, 'duration', { value: 15, configurable: true });
+  let clicked = 0;
+  doc.querySelector('button').addEventListener('click', () => clicked++);
+  const skipper = createAdSkipper({ doc, win: dom.window });
+  skipper.tick();
+  assert.equal(video.muted, true);
+  assert.equal(video.currentTime, 15);
+  assert.equal(clicked, 1);
+  doc.querySelector('#movie_player').classList.remove('ad-showing');
+  skipper.tick();
+  assert.equal(video.muted, false);
+});

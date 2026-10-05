@@ -89,13 +89,16 @@ export function mountOptions(storage, doc = document) {
     'showPageBar',
     'hidePlayables',
     'hideShorts',
-    'cinemaLayout',
+    'skipAds',
     'skipSponsors',
   ];
   for (const id of bools) $(id).addEventListener('change', (e) => save({ [id]: e.target.checked }));
 
   for (const radio of doc.querySelectorAll('input[name="mode"]')) {
     radio.addEventListener('change', () => radio.checked && save({ mode: radio.value }));
+  }
+  for (const radio of doc.querySelectorAll('input[name="playerSize"]')) {
+    radio.addEventListener('change', () => radio.checked && save({ playerSize: radio.value }));
   }
 
   const lines = (v) =>
@@ -216,6 +219,8 @@ export function mountOptions(storage, doc = document) {
     for (const id of bools) $(id).checked = settings[id];
     for (const radio of doc.querySelectorAll('input[name="mode"]'))
       radio.checked = radio.value === settings.mode;
+    for (const radio of doc.querySelectorAll('input[name="playerSize"]'))
+      radio.checked = radio.value === settings.playerSize;
     for (const box of doc.querySelectorAll('[data-pack]')) box.checked = !!settings.packs[box.dataset.pack];
     // Don't clobber a textarea the user is typing in.
     for (const id of ['customKeywords', 'ignoredKeywords']) {

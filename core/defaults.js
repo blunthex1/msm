@@ -160,8 +160,10 @@ export const DEFAULT_SETTINGS = {
   hidePlayables: true,
   // Hide YouTube Shorts everywhere; Shorts links open in the normal video player instead.
   hideShorts: true,
-  // On video pages, size the player to fill the window below YouTube's top bar.
-  cinemaLayout: false,
+  // Video player size: 'default' (normal YouTube), 'theater' (wide) or 'fit' (wide, fills the window).
+  playerSize: 'default',
+  // Fast-forward and skip YouTube's video ads (mutes them while they're skipped).
+  skipAds: true,
   // Auto-skip sponsor / self-promo segments inside videos (community SponsorBlock data).
   skipSponsors: true,
 };

@@ -26,7 +26,7 @@ const SIGN_IN_UA = isMac
 // Persistent config (filter settings + window state)
 
 const configPath = () => path.join(app.getPath('userData'), 'config.json');
-let config = { filter: sanitizeSettings({}), window: {}, alwaysOnTop: false, shields: true };
+let config = { filter: sanitizeSettings({}), window: {}, alwaysOnTop: false, shields: true, quality: 'auto' };
 
 async function loadConfig() {
   try {
@@ -36,6 +36,7 @@ async function loadConfig() {
       window: raw.window && typeof raw.window === 'object' ? raw.window : {},
       alwaysOnTop: raw.alwaysOnTop === true,
       wideReset: raw.wideReset === true,
+      quality: QUALITIES.some((q) => q.id === raw.quality) ? raw.quality : 'auto',
       shields: raw.shields !== false,
     };
   } catch {
@@ -113,7 +114,7 @@ let defaultUA = '';
 // Earlier versions turned on YouTube's theater mode via its "wide" cookie. Clear it once,
 // before any page loads, so YouTube renders its normal layout from the first frame.
 async function resetTheaterCookieOnce() {
-  if (config.wideReset || config.filter.cinemaLayout) return;
+  if (config.wideReset || config.filter.playerSize !== 'default') return;
   try {
     const ses = session.fromPartition(PARTITION);
     for (const c of await ses.cookies.get({ name: 'wide' })) {
@@ -180,6 +181,50 @@ function setShields(on) {
 }
 
 // ---------------------------------------------------------------------------
+// Video quality (YouTube's player API lives in the page, so this runs in the page's world)
+
+const QUALITIES = [
+  { id: 'auto', label: 'Auto' },
+  { id: 'hd2160', label: '2160p (4K)' },
+  { id: 'hd1440', label: '1440p' },
+  { id: 'hd1080', label: '1080p' },
+  { id: 'hd720', label: '720p' },
+  { id: 'large', label: '480p' },
+  { id: 'medium', label: '360p' },
+];
+
+function applyQuality(wc) {
+  if (wc.isDestroyed() || !/^https:\/\/www\.youtube\.com\/watch/.test(wc.getURL())) return;
+  const want = JSON.stringify(config.quality);
+  // Pick the best available level at or below the chosen one; retry until the player is ready.
+  const script = `(() => {
+    const want = ${want};
+    const order = ['hd2160', 'hd1440', 'hd1080', 'hd720', 'large', 'medium', 'small', 'tiny'];
+    let tries = 0;
+    const t = setInterval(() => {
+      const p = document.getElementById('movie_player');
+      const levels = p && p.getAvailableQualityLevels ? p.getAvailableQualityLevels() : [];
+      if (levels.length && !p.classList.contains('ad-showing')) {
+        clearInterval(t);
+        if (want === 'auto') { p.setPlaybackQualityRange && p.setPlaybackQualityRange('auto', 'auto'); return; }
+        const pick = levels.find((l) => order.indexOf(l) >= order.indexOf(want)) || levels[levels.length - 1];
+        try { p.setPlaybackQualityRange(pick, pick); } catch {}
+        try { p.setPlaybackQuality(pick); } catch {}
+      }
+      if (++tries > 60) clearInterval(t);
+    }, 500);
+  })();`;
+  wc.executeJavaScript(script).catch(() => {});
+}
+
+function setQuality(id) {
+  config.quality = id;
+  saveConfig();
+  for (const w of ytWindows) applyQuality(w.webContents);
+  buildMenu();
+}
+
+// ---------------------------------------------------------------------------
 // Windows
 
 const ytWindows = new Set();
@@ -240,6 +285,10 @@ function createYouTubeWindow(url = HOME_URL, { restoreState = false } = {}) {
   wc.on('will-redirect', (e) => guardNavigation(e, e.url));
 
   // Keep navigator.userAgent consistent with the sign-in UA header on Google's login pages.
+  // Apply the chosen quality whenever a video opens (full loads and in-app navigation).
+  wc.on('did-finish-load', () => applyQuality(wc));
+  wc.on('did-navigate-in-page', () => applyQuality(wc));
+
   wc.on('did-start-navigation', (e) => {
     if (!e.isMainFrame) return;
     const onSignIn = hostOf(e.url) === 'accounts.google.com';
@@ -402,6 +451,19 @@ function buildMenu() {
           click: (item) => setShields(item.checked),
         },
         {
+          label: 'Skip Video Ads',
+          type: 'checkbox',
+          checked: config.filter.skipAds,
+          click: () => setFilterSettings({ ...config.filter, skipAds: !config.filter.skipAds }),
+        },
+        {
+          label: 'Skip Sponsor Segments',
+          type: 'checkbox',
+          checked: config.filter.skipSponsors,
+          click: () => setFilterSettings({ ...config.filter, skipSponsors: !config.filter.skipSponsors }),
+        },
+        { type: 'separator' },
+        {
           label: blocker ? 'Filter lists loaded' : 'Filter lists loading…',
           enabled: false,
         },
@@ -443,18 +505,6 @@ function buildMenu() {
           click: () => setFilterSettings({ ...config.filter, hideShorts: !config.filter.hideShorts }),
         },
         {
-          label: 'Skip Sponsors in Videos',
-          type: 'checkbox',
-          checked: f.skipSponsors,
-          click: () => setFilterSettings({ ...config.filter, skipSponsors: !config.filter.skipSponsors }),
-        },
-        {
-          label: 'Cinema Layout on Video Pages',
-          type: 'checkbox',
-          checked: f.cinemaLayout,
-          click: () => setFilterSettings({ ...config.filter, cinemaLayout: !config.filter.cinemaLayout }),
-        },
-        {
           label: 'Hide AI News && Hype Too',
           type: 'checkbox',
           checked: f.packs.aiTopics,
@@ -470,6 +520,30 @@ function buildMenu() {
           click: openSettings,
         },
         { label: 'Settings…', click: openSettings },
+      ],
+    },
+    {
+      label: 'V&ideo',
+      submenu: [
+        { label: 'Player Size', enabled: false },
+        ...[
+          ['default', 'Normal'],
+          ['theater', 'Theater (wide)'],
+          ['fit', 'Fit to Window'],
+        ].map(([id, label]) => ({
+          label: `   ${label}`,
+          type: 'radio',
+          checked: f.playerSize === id,
+          click: () => setFilterSettings({ ...config.filter, playerSize: id }),
+        })),
+        { type: 'separator' },
+        { label: 'Quality', enabled: false },
+        ...QUALITIES.map((q) => ({
+          label: `   ${q.label}`,
+          type: 'radio',
+          checked: config.quality === q.id,
+          click: () => setQuality(q.id),
+        })),
       ],
     },
     {
