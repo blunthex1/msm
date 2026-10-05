@@ -35,6 +35,7 @@ async function loadConfig() {
       filter: sanitizeSettings(raw.filter),
       window: raw.window && typeof raw.window === 'object' ? raw.window : {},
       alwaysOnTop: raw.alwaysOnTop === true,
+      wideReset: raw.wideReset === true,
       shields: raw.shields !== false,
     };
   } catch {
@@ -108,6 +109,23 @@ function cleanUserAgent(ua) {
 }
 
 let defaultUA = '';
+
+// Earlier versions turned on YouTube's theater mode via its "wide" cookie. Clear it once,
+// before any page loads, so YouTube renders its normal layout from the first frame.
+async function resetTheaterCookieOnce() {
+  if (config.wideReset || config.filter.cinemaLayout) return;
+  try {
+    const ses = session.fromPartition(PARTITION);
+    for (const c of await ses.cookies.get({ name: 'wide' })) {
+      const host = c.domain.replace(/^\./, '');
+      await ses.cookies.remove(`https://${host}${c.path || '/'}`, 'wide');
+    }
+  } catch (err) {
+    console.error('Could not reset theater cookie', err);
+  }
+  config.wideReset = true;
+  saveConfig();
+}
 
 function setupSession() {
   const ses = session.fromPartition(PARTITION);
@@ -528,6 +546,7 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(async () => {
     await loadConfig();
     setupSession();
+    await resetTheaterCookieOnce();
     setupIpc();
     buildMenu();
     createYouTubeWindow(urlFromArgv(process.argv) || HOME_URL, { restoreState: true });
