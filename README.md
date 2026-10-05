@@ -18,7 +18,7 @@ Two things in one repo, sharing one filter engine:
 - **Sponsor skipping** (on by default): jumps over sponsor and self-promotion segments inside videos, using the community [SponsorBlock](https://sponsor.ajay.app) database. A small "Skipped sponsor · Undo" notice appears. Only a 4-character hash prefix of the video ID is sent, so the server can't tell which video you're watching.
 - **Shorts blocker** (on by default): hides Shorts shelves, single Shorts cards and the Shorts sidebar link. Any `/shorts/…` link opens in the normal video player instead. Turn it off in settings, or in the app under **AI Filter → Block Shorts**.
 - **A small "AI Filter" bar** on watch and channel pages for one-click block or unblock.
-- Settings live only on your machine: no account, no analytics, no network requests. The extension only asks for the `storage` permission.
+- Settings live only on your machine: no account and no analytics. See [Privacy](#privacy) for the few network requests the app makes. The extension only asks for the `storage` permission.
 
 ## Desktop app (Windows)
 
@@ -50,6 +50,15 @@ The app isn't code-signed yet, so Windows SmartScreen will warn on first launch:
 
 ### Shields (ad & tracker blocking)
 The app blocks ads and trackers the way Brave Shields does. It uses [Ghostery's open-source blocking engine](https://github.com/ghostery/adblocker) with the uBlock Origin, EasyList and EasyPrivacy filter lists. Requests to ad and tracking servers are blocked at the network level, and ad elements are hidden on the page. It's on by default. Toggle it with **Shields → Block Ads & Trackers** (`Ctrl+Shift+S`). The filter lists are downloaded on first launch and cached in the app's data folder.
+
+## Privacy
+
+MSM has no account, no analytics and no telemetry, and your settings never leave your machine. The only network requests it makes are:
+
+- **YouTube itself**, which the app displays (and Google sign-in, if you choose to sign in).
+- **Filter lists** (desktop app): uBlock Origin and EasyList lists, fetched from their public hosts every 12 hours.
+- **SponsorBlock** (`sponsor.ajay.app`): only a 4-character hash prefix of the video ID is sent.
+- **Update checks** (installed desktop app): GitHub Releases for this repository.
 
 ## Browser extension
 
