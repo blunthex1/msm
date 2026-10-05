@@ -282,8 +282,9 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
   // Sometimes, after clicking into a video, YouTube's player stays black and never loads
   // until the page is refreshed. If the player hasn't loaded anything after a few seconds,
   // reload once for that video (never twice, so it can't loop).
+  // Only triggers when the player never got any media after 12s.
 
-  const WATCHDOG_MS = 8000;
+  const WATCHDOG_MS = 12000;
   let watchdog = { vid: null, timer: null };
   function playerWatchdog() {
     const vid = win.location.pathname === '/watch' ? new URLSearchParams(win.location.search).get('v') : null;
@@ -293,10 +294,13 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
     if (!vid) return;
     watchdog.timer = win.setTimeout(() => {
       if (stopped || watchdog.vid !== vid || doc.hidden) return;
-      const video = doc.querySelector('#movie_player video');
-      const loaded = video && (video.currentSrc || video.src) && video.readyState > 0;
-      const errorShown = doc.querySelector('#movie_player .ytp-error');
-      if (loaded || errorShown) return;
+      // Only act on the real symptom: a player with no media attached at all. A slow but
+      // loading video (src set, still buffering) is left alone.
+      const player = doc.querySelector('#movie_player');
+      const video = player?.querySelector('video');
+      const hasMedia = video && (video.currentSrc || video.src);
+      const errorShown = player?.querySelector('.ytp-error');
+      if (!player || hasMedia || errorShown) return;
       try {
         if (win.sessionStorage.getItem('aif-reloaded') === vid) return;
         win.sessionStorage.setItem('aif-reloaded', vid);
@@ -345,10 +349,17 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
     if (!on) {
       // Undo the theater-mode cookie earlier versions set, once, so YouTube looks normal again.
       try {
-        if (/(?:^|;\s*)wide=1(?:;|$)/.test(doc.cookie) && !win.localStorage.getItem('aif-wide-reset')) {
-          doc.cookie = 'wide=0; domain=.youtube.com; path=/; max-age=31536000; secure; samesite=lax';
-          win.localStorage.setItem('aif-wide-reset', '1');
-          doc.querySelector('ytd-watch-flexy[theater] .ytp-size-button')?.click();
+        if (!win.localStorage.getItem('aif-wide-reset')) {
+          if (/(?:^|;\s*)wide=1(?:;|$)/.test(doc.cookie)) {
+            doc.cookie = 'wide=0; domain=.youtube.com; path=/; max-age=31536000; secure; samesite=lax';
+          }
+          // This page may already be in theater mode; switch it back once the player exists.
+          const theaterBtn = doc.querySelector('ytd-watch-flexy[theater] .ytp-size-button');
+          if (theaterBtn) theaterBtn.click();
+          // Done once we're on a watch page that isn't in theater mode (or we just switched it off).
+          if (theaterBtn || doc.querySelector('ytd-watch-flexy:not([hidden]):not([theater]) #movie_player')) {
+            win.localStorage.setItem('aif-wide-reset', '1');
+          }
         }
       } catch {}
       return;
