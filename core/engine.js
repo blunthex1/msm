@@ -302,7 +302,7 @@ export function createFilter({ storage, doc = document, win = window, debounceMs
       const player = doc.querySelector('#movie_player');
       const video = player?.querySelector('video');
       const errorShown = player?.querySelector('.ytp-error');
-      if (!player || errorShown) return;
+      if (errorShown) return; // no player at all counts as stuck too
       const hasMedia = video && (video.currentSrc || video.src);
       const noPicture = video && video.readyState < 2 && video.currentTime === 0;
       if (hasMedia && !noPicture) return;

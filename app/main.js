@@ -139,7 +139,7 @@ function setupSession() {
     cb({ requestHeaders: headers });
   });
 
-  setupShields(ses);
+  shieldsReady = setupShields(ses);
 
   const allowed = new Set(['fullscreen', 'clipboard-sanitized-write', 'pointerLock']);
   ses.setPermissionRequestHandler((_wc, permission, cb) => cb(allowed.has(permission)));
@@ -152,6 +152,7 @@ function setupSession() {
 
 let blocker = null;
 let blockerSession = null;
+let shieldsReady = Promise.resolve();
 
 // uBlock Origin's lists (filters, quick fixes, unbreak, privacy, badware + its scriptlet
 // resources) and EasyList/EasyPrivacy. YouTube changes its ads often and uBO's "quick fixes"
@@ -191,9 +192,13 @@ async function updateFilterLists({ force = false } = {}) {
   buildMenu();
   try {
     const next = await loadBlocker({ force });
+    const firstLoad = !blocker;
     if (blocker && blockerSession && config.shields) blocker.disableBlockingInSession(blockerSession);
     blocker = next;
     if (config.shields && blockerSession) blocker.enableBlockingInSession(blockerSession);
+    // A page that started loading before the blocker switched on can end up with a stuck
+    // player (its ad requests get blocked halfway through). Reload it once, like F5 would.
+    if (firstLoad && config.shields) for (const w of ytWindows) w.webContents.reload();
   } catch (err) {
     console.error('Shields: failed to load filter lists', err);
   } finally {
@@ -694,6 +699,9 @@ if (!app.requestSingleInstanceLock()) {
     await resetTheaterCookieOnce();
     setupIpc();
     buildMenu();
+    // Open the first page only once Shields is active (a few seconds at most), so the page
+    // never loads half-blocked.
+    await Promise.race([shieldsReady, new Promise((r) => setTimeout(r, 5000))]);
     createYouTubeWindow(urlFromArgv(process.argv) || HOME_URL, { restoreState: true });
     setupUpdater();
 
