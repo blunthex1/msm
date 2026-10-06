@@ -364,3 +364,38 @@ test('ad skipper sends a trusted click, covers the ad, and asks for a reload whe
     Date.now = realNow;
   }
 });
+
+test('ad pruning strips ad data from the initial player response, fetches and JSON.parse', async () => {
+  const { installAdPrune } = await import('../core/adprune.js');
+  const dom = new JSDOM('<!doctype html><html></html>', { runScripts: 'outside-only' });
+  const w = dom.window;
+  w.Response = class {
+    constructor(body, init) {
+      this.body = body;
+      this.status = init.status;
+    }
+  };
+  w.fetch = async (url) => ({
+    ok: true,
+    status: 200,
+    statusText: 'OK',
+    headers: {},
+    clone() {
+      return {
+        text: async () => JSON.stringify({ videoDetails: { id: 1 }, adPlacements: [1], playerAds: [2] }),
+      };
+    },
+  });
+  w.eval(`(${installAdPrune.toString()})()`);
+
+  w.ytInitialPlayerResponse = { videoDetails: { id: 1 }, adPlacements: [1], adSlots: [2], streamingData: {} };
+  assert.deepEqual(Object.keys(w.ytInitialPlayerResponse).sort(), ['streamingData', 'videoDetails']);
+
+  const res = await w.fetch('https://www.youtube.com/youtubei/v1/player?key=x');
+  assert.deepEqual(JSON.parse(res.body), { videoDetails: { id: 1 } });
+  const other = await w.fetch('https://www.youtube.com/api/other');
+  assert.equal(other.body, undefined); // untouched
+
+  const parsed = w.JSON.parse('{"playerResponse":{"adPlacements":[1],"ok":true}}');
+  assert.equal(JSON.stringify(parsed), '{"playerResponse":{"ok":true}}');
+});

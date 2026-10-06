@@ -430,6 +430,11 @@ function setupIpc() {
     await setFilterSettings(next);
   });
 
+  // Whether the page-start ad pruning (core/adprune.js) should run: tied to Shields.
+  ipcMain.on('aif:ad-prune', (e) => {
+    e.returnValue = isTrustedSender(e.senderFrame) && config.shields;
+  });
+
   // Ad skipper fallback (core/adskip.js): a real mouse click on YouTube's Skip button.
   ipcMain.on('aif:trusted-click', (e, pos) => {
     if (!isTrustedSender(e.senderFrame) || e.senderFrame !== e.sender.mainFrame) return;

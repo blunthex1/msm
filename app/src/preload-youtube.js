@@ -1,15 +1,24 @@
 // Runs in the YouTube window's isolated world (sandboxed). Nothing is exposed to
 // the page itself; the filter talks to the main process over IPC.
 
-import { ipcRenderer, webFrame } from 'electron';
+import { contextBridge, ipcRenderer, webFrame } from 'electron';
 import css from '../../core/filter.css';
 import { createFilter } from '../../core/engine.js';
+import { installAdPrune } from '../../core/adprune.js';
 
 const storage = {
   load: () => ipcRenderer.invoke('aif:load'),
   save: (settings) => ipcRenderer.invoke('aif:save', settings),
   subscribe: (cb) => ipcRenderer.on('aif:changed', (_e, settings) => cb(settings)),
 };
+
+// Runs in the page's own world before YouTube's scripts: strips ad data from player
+// responses (only while Shields is on).
+try {
+  if (ipcRenderer.sendSync('aif:ad-prune')) contextBridge.executeInMainWorld({ func: installAdPrune });
+} catch (err) {
+  console.error('MSM: ad pruning not installed', err);
+}
 
 webFrame.insertCSS(css);
 
